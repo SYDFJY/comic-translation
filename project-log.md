@@ -1,7 +1,7 @@
 # 漫画翻译器 — 项目进度日志
 
 > 项目：漫画翻译器 (MangaTranslator)  
-> 版本：v1.0 · 最后更新：2026-07-10  
+> 版本：v1.0 · 最后更新：2026-07-10 19:38  
 > 团队：南昌航空大学 · 软件工程 2025 级暑期实训
 
 ---
@@ -11,7 +11,7 @@
 | 阶段 | 计划时间 | 状态 | 完成度 |
 |------|---------|------|--------|
 | **Phase 0 — 项目初始化** | 7/10 | ✅ 已完成 | 100% |
-| **Phase 1 — MVP 核心管线** | 第1-2周 (7/11-7/24) | ⚪ 未开始 | 0% |
+| **Phase 1 — MVP 核心管线** | 第1-2周 (7/11-7/24) | 🟡 进行中 | 10% |
 | **Phase 2 — 品质提升** | 第3周 (7/25-7/31) | ⚪ 未开始 | 0% |
 | **Phase 3 — 高级特性** | 第4周 (8/1-8/7) | ⚪ 未开始 | 0% |
 
@@ -42,7 +42,7 @@
 
 | 编号 | 里程碑 | 计划日期 | 状态 | 实际日期 |
 |------|--------|---------|------|---------|
-| M1 | 项目初始化 | 7/11 | ⚪ 待开始 | — |
+| M1 | 项目初始化 | 7/11 | ✅ 已完成 | 7/10 |
 | M2 | API 鉴权连通 | 7/13 | ⚪ 待开始 | — |
 | M3 | UI 三区布局 | 7/15 | ⚪ 待开始 | — |
 | M4 | 设置对话框 + 首次引导 | 7/17 | ⚪ 待开始 | — |
@@ -61,6 +61,47 @@
 ---
 
 ## 开发记录
+
+### [2026-07-10] Phase 1 Step 1 — 项目骨架搭建
+
+**完成内容：**
+- 创建 `pom.xml`（JDK 17, JavaFX 17.0.8, 所有依赖锁定）
+- 创建完整包结构（8 个子包）
+- 创建 `MangaTranslatorApp.java` 主入口（JavaFX 窗口 1280×720）
+- 创建 `logback.xml` 日志配置
+- 创建 model 层：7 个数据类（TextRegion, MangaPage, TranslationConfig, 4 个枚举）
+- 创建异常体系：1 个基类 + 5 个子类（OcrException, TranslationException, AuthException, RateLimitException, ConfigException）
+- 创建 config 层：`ConfigManager.java`（JSON 读写，存储到 ~/.manga-translator/）
+- 创建 util 层：4 个工具类（ImageUtil, Md5Util, Base64Util, AesEncryptUtil）
+- 配置 JDK 17 + Maven 3.9.6 环境
+- `mvn compile` 编译成功（19 个源文件，0 错误）
+
+**修改文件：**
+| 文件 | 说明 |
+|------|------|
+| `pom.xml` | 新增 — Maven 构建配置 |
+| `src/main/java/com/manga/translator/MangaTranslatorApp.java` | 新增 — 主入口 |
+| `src/main/resources/logback.xml` | 新增 — 日志配置 |
+| `src/main/java/com/manga/translator/model/*.java` | 新增 — 7 个 model 类 |
+| `src/main/java/com/manga/translator/*Exception.java` | 新增 — 6 个异常类 |
+| `src/main/java/com/manga/translator/config/ConfigManager.java` | 新增 — 配置管理 |
+| `src/main/java/com/manga/translator/util/*.java` | 新增 — 4 个工具类 |
+
+**遇到的问题：**
+- 环境问题：系统中只有 JDK 8，需要 JDK 17
+- Maven 未在 PATH 中配置
+
+**解决方式：**
+- 发现 D 盘已有 JDK 17.0.19（Eclipse Temurin）和 Maven 3.9.6
+- 通过 export JAVA_HOME 和 PATH 临时配置，编译成功
+
+**待办事项：**
+- [ ] 下一步：实现 Client 层（BaiduAuthManager, BaiduOcrClient, BaiduTranslateClient）
+- [ ] 将 JDK 17 + Maven 环境变量持久化配置
+
+**Git 提交：** `feat: 创建 Maven 项目骨架和基础代码结构`
+
+---
 
 ### [2026-07-10] Phase 0 — 项目初始化
 
@@ -106,12 +147,12 @@
 
 ### Phase 1 — MVP 核心管线
 
-- [ ] **Step 1：** 创建 Maven 项目骨架
-  - [ ] 创建 `pom.xml`（含 JavaFX 插件、已锁定依赖版本）
-  - [ ] 创建包结构（config/model/pipeline/service/client/ui/util）
-  - [ ] 创建 model 层数据类（TextRegion, MangaPage, TranslationConfig, PageStatus, RegionStatus, InpaintStrategy, OcrVersion）
-  - [ ] 创建自定义异常体系（MangaTranslatorException 及其子类）
-  - [ ] 创建 `MangaTranslatorApp.java` 主入口
+- [x] **Step 1：** 创建 Maven 项目骨架
+  - [x] 创建 `pom.xml`（含 JavaFX 插件、已锁定依赖版本）
+  - [x] 创建包结构（config/model/pipeline/service/client/ui/util）
+  - [x] 创建 model 层数据类（TextRegion, MangaPage, TranslationConfig, PageStatus, RegionStatus, InpaintStrategy, OcrVersion）
+  - [x] 创建自定义异常体系（MangaTranslatorException 及其子类）
+  - [x] 创建 `MangaTranslatorApp.java` 主入口
 - [ ] **Step 2：** 实现 Client 层
   - [ ] 实现 `HttpUtil.java`（HTTP 请求工具类）
   - [ ] 实现 `BaiduAuthManager.java`（access_token 管理、AES-128 加密存储）
@@ -135,7 +176,7 @@
   - [ ] 实现 `TextPanel.java` 文本面板
   - [ ] 实现 `FileListPanel.java` 文件列表
   - [ ] 实现 `BottomBar.java` 底部栏
-  - [ ] 实现 `ConfigManager.java` 配置管理
+  - [x] 实现 `ConfigManager.java` 配置管理
 - [ ] **集成测试：** Phase 1 端到端验证
 
 ### Phase 2 — 品质提升
