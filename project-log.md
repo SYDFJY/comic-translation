@@ -1,7 +1,7 @@
 # 漫画翻译器 — 项目进度日志
 
 > 项目：漫画翻译器 (MangaTranslator)  
-> 版本：v1.0 · 最后更新：2026-07-10 19:38  
+> 版本：v1.0 · 最后更新：2026-07-10 19:42  
 > 团队：南昌航空大学 · 软件工程 2025 级暑期实训
 
 ---
@@ -11,7 +11,7 @@
 | 阶段 | 计划时间 | 状态 | 完成度 |
 |------|---------|------|--------|
 | **Phase 0 — 项目初始化** | 7/10 | ✅ 已完成 | 100% |
-| **Phase 1 — MVP 核心管线** | 第1-2周 (7/11-7/24) | 🟡 进行中 | 10% |
+| **Phase 1 — MVP 核心管线** | 第1-2周 (7/11-7/24) | 🟡 进行中 | 20% |
 | **Phase 2 — 品质提升** | 第3周 (7/25-7/31) | ⚪ 未开始 | 0% |
 | **Phase 3 — 高级特性** | 第4周 (8/1-8/7) | ⚪ 未开始 | 0% |
 
@@ -96,10 +96,43 @@
 - 通过 export JAVA_HOME 和 PATH 临时配置，编译成功
 
 **待办事项：**
-- [ ] 下一步：实现 Client 层（BaiduAuthManager, BaiduOcrClient, BaiduTranslateClient）
+- [x] 下一步：实现 Client 层（BaiduAuthManager, BaiduOcrClient, BaiduTranslateClient）
 - [ ] 将 JDK 17 + Maven 环境变量持久化配置
 
 **Git 提交：** `feat: 创建 Maven 项目骨架和基础代码结构`
+
+---
+
+### [2026-07-10] Phase 1 Step 2 — 实现 Client 层
+
+**完成内容：**
+- 实现 `HttpUtil.java` — HTTP 请求工具类（Apache HttpClient 5.3 封装，10s/30s 超时）
+- 实现 `BaiduAuthManager.java` — 百度鉴权管理器（access_token 获取/缓存/自动刷新/连通验证）
+- 实现 `TokenBucketRateLimiter.java` — 令牌桶限速器（OCR 1.5QPS/翻译 8QPS，Semaphore 实现）
+- 实现 `CircuitBreaker.java` — 熔断器（3状态：CLOSED/OPEN/HALF_OPEN，5次失败→60s熔断→3次锁定）
+- 实现 `BaiduOcrClient.java` — OCR API 客户端（通用版/高精度版，置信度门控，JSON 解析）
+- 实现 `BaiduTranslateClient.java` — 翻译 API 客户端（MD5 签名，单条/批量翻译，6000字符限制）
+
+**修改文件：**
+| 文件 | 说明 |
+|------|------|
+| `src/main/java/com/manga/translator/client/HttpUtil.java` | 新增 — HTTP 工具类 |
+| `src/main/java/com/manga/translator/client/BaiduAuthManager.java` | 新增 — 鉴权管理 |
+| `src/main/java/com/manga/translator/client/TokenBucketRateLimiter.java` | 新增 — 限速器 |
+| `src/main/java/com/manga/translator/client/CircuitBreaker.java` | 新增 — 熔断器 |
+| `src/main/java/com/manga/translator/client/BaiduOcrClient.java` | 新增 — OCR 客户端 |
+| `src/main/java/com/manga/translator/client/BaiduTranslateClient.java` | 新增 — 翻译客户端 |
+
+**遇到的问题：**
+- `EntityUtils.toString` 在 HttpClient 5 中会抛出 `ParseException`（不在 `IOException` 继承链中），需要显式捕获
+
+**解决方式：**
+- 在 post 和 postJson 方法中添加 `catch (ParseException e)` → 包装为 IOException 抛出
+
+**待办事项：**
+- [ ] 下一步：实现 Service 层（OcrService, TranslateService, InpaintService, RenderService）
+
+**Git 提交：** `feat: 实现 Client 层（HTTP工具/鉴权/限速/熔断/OCR客户端/翻译客户端）`
 
 ---
 
@@ -153,13 +186,13 @@
   - [x] 创建 model 层数据类（TextRegion, MangaPage, TranslationConfig, PageStatus, RegionStatus, InpaintStrategy, OcrVersion）
   - [x] 创建自定义异常体系（MangaTranslatorException 及其子类）
   - [x] 创建 `MangaTranslatorApp.java` 主入口
-- [ ] **Step 2：** 实现 Client 层
-  - [ ] 实现 `HttpUtil.java`（HTTP 请求工具类）
-  - [ ] 实现 `BaiduAuthManager.java`（access_token 管理、AES-128 加密存储）
-  - [ ] 实现 `BaiduOcrClient.java`（OCR API 调用封装）
-  - [ ] 实现 `BaiduTranslateClient.java`（翻译 API 调用封装 + MD5 签名）
-  - [ ] 实现 `TokenBucketRateLimiter.java`（令牌桶限速）
-  - [ ] 实现 `CircuitBreaker.java`（熔断器）
+- [x] **Step 2：** 实现 Client 层
+  - [x] 实现 `HttpUtil.java`（HTTP 请求工具类）
+  - [x] 实现 `BaiduAuthManager.java`（access_token 管理、加密存储）
+  - [x] 实现 `BaiduOcrClient.java`（OCR API 调用封装）
+  - [x] 实现 `BaiduTranslateClient.java`（翻译 API 调用封装 + MD5 签名）
+  - [x] 实现 `TokenBucketRateLimiter.java`（令牌桶限速）
+  - [x] 实现 `CircuitBreaker.java`（熔断器）
 - [ ] **Step 3：** 实现 Service 层
   - [ ] 实现 `OcrService` / `BaiduOcrServiceImpl`
   - [ ] 实现 `TranslateService` / `BaiduTranslateServiceImpl`
