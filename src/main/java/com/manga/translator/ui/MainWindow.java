@@ -344,7 +344,24 @@ public class MainWindow extends BorderPane {
         // 后台线程执行
         pipelineThread = new Thread(() -> {
             try {
+                log.info("管线开始执行: {}", page.getFileName());
+                log.info("原图尺寸: {}x{}, type={}",
+                        page.getOriginalImage().getWidth(),
+                        page.getOriginalImage().getHeight(),
+                        page.getOriginalImage().getType());
+
                 var context = pipeline.execute(page, config);
+
+                log.info("管线执行完毕: resultImage={}, regions={}",
+                        context.getResultImage() != null ? context.getResultImage().getWidth() + "x" + context.getResultImage().getHeight() : "null",
+                        context.getCleanedRegions() != null ? context.getCleanedRegions().size() : "null");
+
+                if (context.getCleanedRegions() != null) {
+                    for (TextRegion r : context.getCleanedRegions()) {
+                        log.info("  区域 #{}: '{}' -> '{}'", r.getId(), r.getOriginalText(), r.getTranslatedText());
+                    }
+                }
+
                 if (context.getResultImage() != null) {
                     page.setTranslatedImage(context.getResultImage());
                     page.setTextRegions(context.getCleanedRegions());
