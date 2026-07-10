@@ -95,19 +95,21 @@ public class LogPanel extends VBox {
     }
 
     /**
-     * 添加日志行。
+     * 添加日志行（线程安全）。
      */
     private void addLog(String color, String level, String message) {
         String time = LocalDateTime.now().format(TIME_FORMATTER);
-        Label line = new Label("[" + time + "] [" + level + "] " + message);
-        line.setStyle("-fx-font-size: 11px; -fx-text-fill: " + color + ";"
-                + "-fx-padding: 2px 0;"
-                + "-fx-wrap-text: true;");
-        logContent.getChildren().add(line);
+        String lineText = "[" + time + "] [" + level + "] " + message;
 
-        // 自动滚动到底部
-        javafx.application.Platform.runLater(() ->
-                scrollPane.setVvalue(1.0));
+        // Platform.runLater 确保 JavaFX 线程安全（可从任何线程调用）
+        javafx.application.Platform.runLater(() -> {
+            Label line = new Label(lineText);
+            line.setStyle("-fx-font-size: 11px; -fx-text-fill: " + color + ";"
+                    + "-fx-padding: 2px 0;"
+                    + "-fx-wrap-text: true;");
+            logContent.getChildren().add(line);
+            scrollPane.setVvalue(1.0);
+        });
     }
 
     /**

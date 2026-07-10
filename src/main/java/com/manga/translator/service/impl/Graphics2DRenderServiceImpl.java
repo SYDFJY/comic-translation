@@ -40,7 +40,7 @@ public class Graphics2DRenderServiceImpl implements RenderService {
     private static final float MIN_FONT_SIZE = 10f;
 
     /** 回填默认字体 */
-    private static final String DEFAULT_FONT = "Microsoft YaHei";
+    private static final String DEFAULT_FONT = "SansSerif";
 
     private final String fontName;
 
