@@ -1,9 +1,8 @@
 package com.manga.translator;
 
+import com.manga.translator.ui.MainWindow;
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
@@ -26,14 +25,9 @@ public class MangaTranslatorApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Phase 1 placeholder — 后续替换为完整 MainWindow
-        Label placeholder = new Label("MangaTranslator — 漫画翻译器");
-        placeholder.setStyle("-fx-font-size: 24px; -fx-text-fill: #E94560;");
+        MainWindow mainWindow = new MainWindow();
 
-        StackPane root = new StackPane(placeholder);
-        root.setStyle("-fx-background-color: #1E1E2E;");
-
-        Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
+        Scene scene = new Scene(mainWindow, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         primaryStage.setTitle(APP_TITLE);
         primaryStage.setScene(scene);
