@@ -31,10 +31,25 @@ public class MangaTranslatorApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        primaryStage.setTitle(APP_TITLE);
+        primaryStage.setMinWidth(WINDOW_MIN_WIDTH);
+        primaryStage.setMinHeight(WINDOW_MIN_HEIGHT);
+
+        // 先创建 Scene，确保 primaryStage 有 Scene 关联
+        MainWindow mainWindow = new MainWindow();
+        Scene scene = new Scene(mainWindow, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        var cssUrl = getClass().getResource("/styles/app.css");
+        if (cssUrl != null) {
+            scene.getStylesheets().add(cssUrl.toExternalForm());
+        }
+
+        primaryStage.setScene(scene);
+
+        // 首次启动引导（primaryStage 已有 Scene，Dialog.initOwner 不会 NPE）
         ConfigManager configManager = new ConfigManager();
         TranslationConfig config = configManager.loadConfig();
 
-        // 首次启动引导
         if (!config.isValid()) {
             HttpUtil httpUtil = new HttpUtil();
             BaiduAuthManager authManager = new BaiduAuthManager(httpUtil);
@@ -43,29 +58,9 @@ public class MangaTranslatorApp extends Application {
             onboarding.initOwner(primaryStage);
             onboarding.showAndWait().ifPresent(savedConfig -> {
                 configManager.saveConfig(savedConfig);
-                // config saved by configManager.saveConfig(savedConfig);
             });
         }
 
-        MainWindow mainWindow = new MainWindow();
-        Scene scene = new Scene(mainWindow, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-        // 加载 CSS 样式
-        var cssUrl = getClass().getResource("/styles/app.css");
-        if (cssUrl != null) {
-            scene.getStylesheets().add(cssUrl.toExternalForm());
-        }
-
-        primaryStage.setTitle(APP_TITLE);
-        primaryStage.setScene(scene);
-        primaryStage.setMinWidth(WINDOW_MIN_WIDTH);
-        primaryStage.setMinHeight(WINDOW_MIN_HEIGHT);
         primaryStage.show();
-
-        // 确保窗口关闭时清理资源
-        primaryStage.setOnCloseRequest(e -> {
-            Platform.exit();
-            System.exit(0);
-        });
     }
 }
