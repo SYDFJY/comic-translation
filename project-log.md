@@ -1,7 +1,7 @@
 # 漫画翻译器 — 项目进度日志
 
 > 项目：漫画翻译器 (MangaTranslator)  
-> 版本：v1.0 · 最后更新：2026-07-10 19:42  
+> 版本：v1.0 · 最后更新：2026-07-10 19:46  
 > 团队：南昌航空大学 · 软件工程 2025 级暑期实训
 
 ---
@@ -171,6 +171,44 @@
 
 ---
 
+### [2026-07-10] Phase 1 Step 4 — 实现 Pipeline 层
+
+**完成内容：**
+- 实现 `PipelineContext.java` — 管线上下文（数据传递 + 进度管理 + 取消标记）
+- 实现 `PipelineEvent.java` / `PipelineListener.java` / `PipelineEventBus.java` — 事件体系（进度/错误/完成）
+- 实现 `OcrStep.java` — OCR 步骤（权重 20%）
+- 实现 `CleanStep.java` — 文本清洗步骤（权重 10%，去噪声 + 相邻合并）
+- 实现 `TranslateStep.java` — 翻译步骤（权重 30%）
+- 实现 `InpaintStep.java` — 修补步骤（权重 20%）
+- 实现 `RenderStep.java` — 回填步骤（权重 20%）
+- 实现 `TranslationPipeline.java` — 管线编排器（5 步顺序执行 + 异常中止 + 取消支持 + 事件通知）
+
+**修改文件：**
+| 文件 | 说明 |
+|------|------|
+| `src/main/java/com/manga/translator/pipeline/PipelineContext.java` | 新增 |
+| `src/main/java/com/manga/translator/pipeline/TranslationStep.java` | 新增 — 步骤接口 |
+| `src/main/java/com/manga/translator/pipeline/PipelineEvent.java` | 新增 — 事件类 |
+| `src/main/java/com/manga/translator/pipeline/PipelineListener.java` | 新增 — 监听器接口 |
+| `src/main/java/com/manga/translator/pipeline/PipelineEventBus.java` | 新增 — 事件总线 |
+| `src/main/java/com/manga/translator/pipeline/OcrStep.java` | 新增 |
+| `src/main/java/com/manga/translator/pipeline/CleanStep.java` | 新增 |
+| `src/main/java/com/manga/translator/pipeline/TranslateStep.java` | 新增 |
+| `src/main/java/com/manga/translator/pipeline/InpaintStep.java` | 新增 |
+| `src/main/java/com/manga/translator/pipeline/RenderStep.java` | 新增 |
+| `src/main/java/com/manga/translator/pipeline/TranslationPipeline.java` | 新增 — 管线编排器 |
+
+**遇到的问题：**
+- `PipelineEvent` 是 public class 需要独立文件，不能和 PipelineEventBus 放在同一个 .java 中
+- `PipelineListener` 接口同理
+
+**解决方式：**
+- 拆分为 3 个独立文件：PipelineEvent.java、PipelineListener.java、PipelineEventBus.java
+
+**Git 提交：** `feat: 实现 Pipeline 层（管线上下文/5 步步骤/编排器/事件总线）`
+
+---
+
 ### [2026-07-10] Phase 0 — 项目初始化
 
 **完成内容：**
@@ -233,10 +271,10 @@
   - [x] 实现 `TranslateService` / `BaiduTranslateServiceImpl`
   - [x] 实现 `InpaintService` / `WhiteInpaintServiceImpl`
   - [x] 实现 `RenderService` / `Graphics2DRenderServiceImpl`
-- [ ] **Step 4：** 实现 Pipeline 层
-  - [ ] 实现 `PipelineContext.java`
-  - [ ] 实现各 `TranslationStep` 步骤类
-  - [ ] 实现 `TranslationPipeline.java` 编排
+- [x] **Step 4：** 实现 Pipeline 层
+  - [x] 实现 `PipelineContext.java`
+  - [x] 实现各 `TranslationStep` 步骤类
+  - [x] 实现 `TranslationPipeline.java` 编排
 - [ ] **Step 5：** 实现 UI 层（最简版）
   - [ ] 实现 `MainWindow.java` 主窗口
   - [ ] 实现 `NavBar.java` 导航栏
