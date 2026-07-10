@@ -31,7 +31,7 @@ public class BottomBar extends HBox {
 
         // 进度条
         progressBar = new ProgressBar(0);
-        progressBar.setStyle("-fx-accent: linear-gradient(to right, #533483, #E94560);"
+        progressBar.setStyle("-fx-accent: #E94560;"
                 + "-fx-min-height: 6px;"
                 + "-fx-max-height: 6px;");
         progressBar.setPrefWidth(200);

@@ -337,13 +337,6 @@ public class MainWindow extends BorderPane {
                     bottomBar.setIdle();
                     navBar.setTranslating(false);
                     logPanel.success(event.getMessage());
-
-                    var result = page.getTranslatedImage();
-                    if (result != null) {
-                        canvasPanel.showResultImage(result);
-                    }
-                    textPanel.updateTextRegions(page.getTextRegions());
-                    fileListPanel.refreshList();
                 });
             }
         });
@@ -357,6 +350,15 @@ public class MainWindow extends BorderPane {
                     page.setTextRegions(context.getCleanedRegions());
                     page.setStatus(PageStatus.COMPLETED);
                 }
+                // 等 page 字段更新完再刷新 UI（解决竞争条件）
+                Platform.runLater(() -> {
+                    var transImage = page.getTranslatedImage();
+                    if (transImage != null) {
+                        canvasPanel.showResultImage(transImage);
+                    }
+                    textPanel.updateTextRegions(page.getTextRegions());
+                    fileListPanel.refreshList();
+                });
                 int textCount = context.getCleanedRegions() != null ? context.getCleanedRegions().size() : 0;
                 logPanel.success("翻译完成！共识别 " + textCount + " 个文字区域");
             } catch (Exception e) {
