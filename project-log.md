@@ -136,6 +136,41 @@
 
 ---
 
+### [2026-07-10] Phase 1 Step 3 — 实现 Service 层
+
+**完成内容：**
+- 实现 `OcrService` 接口 + `BaiduOcrServiceImpl`（限速1.5QPS、熔断保护、Base64编码、置信度门控）
+- 实现 `TranslateService` 接口 + `BaiduTranslateServiceImpl`（限速8QPS、逐条/分批策略、部分失败处理）
+- 实现 `InpaintService` 接口 + `WhiteInpaintServiceImpl`（白色圆角矩形覆盖，半径8px）
+- 实现 `InpaintService` 接口 + `AvgColorInpaintServiceImpl`（取色填充，边缘2px采样 RGB 均值）
+- 实现 `RenderService` 接口 + `Graphics2DRenderServiceImpl`（横排65%/竖排自适应、10px下限、居中对齐）
+
+**修改文件：**
+| 文件 | 说明 |
+|------|------|
+| `src/main/java/com/manga/translator/service/OcrService.java` | 新增 — OCR接口 |
+| `src/main/java/com/manga/translator/service/TranslateService.java` | 新增 — 翻译接口 |
+| `src/main/java/com/manga/translator/service/InpaintService.java` | 新增 — 修补接口 |
+| `src/main/java/com/manga/translator/service/RenderService.java` | 新增 — 渲染接口 |
+| `src/main/java/com/manga/translator/service/impl/BaiduOcrServiceImpl.java` | 新增 — OCR实现 |
+| `src/main/java/com/manga/translator/service/impl/BaiduTranslateServiceImpl.java` | 新增 — 翻译实现 |
+| `src/main/java/com/manga/translator/service/impl/WhiteInpaintServiceImpl.java` | 新增 — 白色修补 |
+| `src/main/java/com/manga/translator/service/impl/AvgColorInpaintServiceImpl.java` | 新增 — 取色修补 |
+| `src/main/java/com/manga/translator/service/impl/Graphics2DRenderServiceImpl.java` | 新增 — 渲染实现 |
+
+**遇到的问题：**
+- `Graphics2DRenderServiceImpl` 缺少 `import java.util.List` 导致编译失败
+
+**解决方式：**
+- 添加缺失的 import 语句
+
+**待办事项：**
+- [ ] 下一步：实现 Pipeline 层（PipelineContext、TranslationStep、TranslationPipeline）
+
+**Git 提交：** `feat: 实现 Service 层（OCR/翻译/修补/渲染 4 接口+实现）`
+
+---
+
 ### [2026-07-10] Phase 0 — 项目初始化
 
 **完成内容：**
@@ -193,11 +228,11 @@
   - [x] 实现 `BaiduTranslateClient.java`（翻译 API 调用封装 + MD5 签名）
   - [x] 实现 `TokenBucketRateLimiter.java`（令牌桶限速）
   - [x] 实现 `CircuitBreaker.java`（熔断器）
-- [ ] **Step 3：** 实现 Service 层
-  - [ ] 实现 `OcrService` / `BaiduOcrServiceImpl`
-  - [ ] 实现 `TranslateService` / `BaiduTranslateServiceImpl`
-  - [ ] 实现 `InpaintService` / `WhiteInpaintServiceImpl`
-  - [ ] 实现 `RenderService` / `Graphics2DRenderServiceImpl`
+- [x] **Step 3：** 实现 Service 层
+  - [x] 实现 `OcrService` / `BaiduOcrServiceImpl`
+  - [x] 实现 `TranslateService` / `BaiduTranslateServiceImpl`
+  - [x] 实现 `InpaintService` / `WhiteInpaintServiceImpl`
+  - [x] 实现 `RenderService` / `Graphics2DRenderServiceImpl`
 - [ ] **Step 4：** 实现 Pipeline 层
   - [ ] 实现 `PipelineContext.java`
   - [ ] 实现各 `TranslationStep` 步骤类
