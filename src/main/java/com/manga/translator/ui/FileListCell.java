@@ -2,24 +2,31 @@ package com.manga.translator.ui;
 
 import com.manga.translator.model.MangaPage;
 import com.manga.translator.model.PageStatus;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+
+import java.awt.image.BufferedImage;
 
 /**
  * 文件列表单元格渲染器。
  * <p>
- * 显示文件名和状态标签。
+ * 显示缩略图、文件名和状态标签。
  */
 public class FileListCell extends ListCell<MangaPage> {
+
+    private static final int THUMB_WIDTH = 32;
+    private static final int THUMB_HEIGHT = 40;
 
     private static final String DONE_COLOR = "#4ADE80";
     private static final String PROCESSING_COLOR = "#60A5FA";
     private static final String PENDING_COLOR = "#FBBF24";
     private static final String FAILED_COLOR = "#F87171";
     private static final String TEXT_COLOR = "#A0A0B0";
-    private static final String HOVER_COLOR = "#3A3A5A";
     private static final String ACTIVE_COLOR = "#E94560";
 
     @Override
@@ -35,6 +42,20 @@ public class FileListCell extends ListCell<MangaPage> {
         HBox box = new HBox(6);
         box.setStyle("-fx-padding: 5px 8px; -fx-alignment: center-left;");
 
+        // 缩略图
+        ImageView thumbView = new ImageView();
+        thumbView.setFitWidth(THUMB_WIDTH);
+        thumbView.setFitHeight(THUMB_HEIGHT);
+        thumbView.setPreserveRatio(true);
+        thumbView.setStyle("-fx-border-color: #404058; -fx-border-width: 1px; -fx-border-radius: 3px;");
+
+        BufferedImage original = page.getOriginalImage();
+        if (original != null) {
+            Image thumb = SwingFXUtils.toFXImage(original, null);
+            thumbView.setImage(thumb);
+        }
+
+        // 文件信息
         VBox info = new VBox(2);
         Label fileName = new Label(page.getFileName());
         fileName.setStyle("-fx-font-size: 12px; -fx-text-fill: " + TEXT_COLOR + ";");
@@ -63,7 +84,7 @@ public class FileListCell extends ListCell<MangaPage> {
         }
 
         info.getChildren().addAll(fileName, statusLabel);
-        box.getChildren().add(info);
+        box.getChildren().addAll(thumbView, info);
 
         // 选中状态
         if (isSelected()) {
