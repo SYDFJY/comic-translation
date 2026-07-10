@@ -150,6 +150,9 @@ public class MainWindow extends BorderPane {
 
         // 双击修正
         textPanel.setOnTranslationDoubleClick(this::showCorrectionDialog);
+
+        // 日志展开
+        bottomBar.setOnLogToggle(() -> logPanel.toggle());
     }
 
     /**

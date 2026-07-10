@@ -1,13 +1,10 @@
 package com.manga.translator.ui;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.util.Duration;
 
 /**
  * 底部状态栏。
@@ -18,9 +15,11 @@ public class BottomBar extends HBox {
 
     private final ProgressBar progressBar;
     private final Label progressLabel;
+    private final Label logBtn;
 
     private static final String BG_COLOR = "#2A2A4A";
     private static final String TEXT_COLOR = "#606070";
+    private static final String BTN_BG = "#252540";
 
     public BottomBar() {
         setStyle("-fx-background-color: " + BG_COLOR + ";"
@@ -46,13 +45,14 @@ public class BottomBar extends HBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // 日志按钮（Phase 2 实现展开功能）
-        Label logBtn = new Label("日志 ▾");
-        logBtn.setStyle("-fx-font-size: 11px; -fx-text-fill: " + TEXT_COLOR + ";"
+        // 日志按钮
+        logBtn = new Label("日志 ▾");
+        String logBtnStyle = "-fx-font-size: 11px; -fx-text-fill: " + TEXT_COLOR + ";"
                 + "-fx-padding: 2px 8px;"
-                + "-fx-background-color: #252540;"
+                + "-fx-background-color: " + BTN_BG + ";"
                 + "-fx-background-radius: 4px;"
-                + "-fx-cursor: hand;");
+                + "-fx-cursor: hand;";
+        logBtn.setStyle(logBtnStyle);
 
         getChildren().addAll(progressBar, progressLabel, spacer, logBtn);
     }
@@ -74,5 +74,14 @@ public class BottomBar extends HBox {
     public void setIdle() {
         progressBar.setProgress(0);
         progressLabel.setText("就绪");
+    }
+
+    /**
+     * 设置日志按钮点击回调。
+     *
+     * @param callback 点击时执行
+     */
+    public void setOnLogToggle(Runnable callback) {
+        logBtn.setOnMouseClicked(e -> callback.run());
     }
 }

@@ -19,6 +19,9 @@ public class OnboardingDialog extends Dialog<TranslationConfig> {
     private final BaiduAuthManager authManager;
     private int currentStep = 0;
 
+    /** 同意复选框 */
+    private CheckBox agreeCheck;
+
     private final VBox contentArea;
     private final HBox stepIndicator;
 
@@ -90,6 +93,16 @@ public class OnboardingDialog extends Dialog<TranslationConfig> {
         // 下一步逻辑
         nextBtn.setOnAction(e -> {
             if (currentStep == 0) {
+                // 验证同意复选框
+                if (agreeCheck == null || !agreeCheck.isSelected()) {
+                    feedbackLabel.setText("请先勾选「我已了解」以继续");
+                    feedbackLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #FBBF24;");
+                    if (!contentArea.getChildren().contains(feedbackLabel)) {
+                        contentArea.getChildren().add(feedbackLabel);
+                    }
+                    return;
+                }
+                contentArea.getChildren().remove(feedbackLabel);
                 showStep1ApiConfig();
                 updateStepIndicator(1);
                 currentStep = 1;
@@ -137,7 +150,7 @@ public class OnboardingDialog extends Dialog<TranslationConfig> {
         desc.setStyle("-fx-font-size: 13px; -fx-text-fill: #A0A0B0; -fx-line-spacing: 4px;");
         desc.setWrapText(true);
 
-        CheckBox agreeCheck = new CheckBox("我已了解，本软件将调用百度云 API 处理图片");
+        agreeCheck = new CheckBox("我已了解，本软件将调用百度云 API 处理图片");
         agreeCheck.setStyle("-fx-font-size: 12px; -fx-text-fill: #E8E8E8;");
 
         contentArea.getChildren().addAll(title, desc, agreeCheck);
