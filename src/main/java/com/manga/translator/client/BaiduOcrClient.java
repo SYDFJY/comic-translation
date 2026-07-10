@@ -115,15 +115,17 @@ public class BaiduOcrClient {
 
             // 提取置信度
             double probability = 0;
+            boolean hasProbability = false;
             if (item.has("probability") && !item.get("probability").isJsonNull()) {
                 JsonObject probObj = item.getAsJsonObject("probability");
                 if (probObj.has("average")) {
                     probability = probObj.get("average").getAsDouble();
+                    hasProbability = true;
                 }
             }
 
-            // 置信度门控：低于阈值则丢弃
-            if (probability < MIN_PROBABILITY) {
+            // 置信度门控：仅当 API 返回了置信度时才过滤
+            if (hasProbability && probability < MIN_PROBABILITY) {
                 log.debug("OCR 低置信度丢弃: prob={}", probability);
                 continue;
             }
