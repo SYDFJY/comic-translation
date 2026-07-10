@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.List;
+import java.util.Optional;
 import java.io.IOException;
 import java.util.Optional;
 
@@ -125,8 +127,12 @@ public class MainWindow extends BorderPane {
     private void setupEventHandlers() {
         navBar.getOpenBtn().setOnAction(e -> openFile());
         navBar.getTranslateBtn().setOnAction(e -> {
-            MangaPage selected = fileListPanel.getSelectedPage();
-            if (selected != null) {
+            var selectedPages = fileListPanel.getSelectedPages();
+            if (selectedPages.size() > 1) {
+                // 多文件：批量翻译
+                startBatchTranslation(selectedPages);
+            } else if (selectedPages.size() == 1) {
+                MangaPage selected = selectedPages.get(0);
                 if (selected.getStatus() == PageStatus.TRANSLATING) {
                     cancelTranslation();
                 } else {
@@ -140,6 +146,7 @@ public class MainWindow extends BorderPane {
         navBar.getSplitViewBtn().setOnAction(e -> canvasPanel.toggleSplitView());
 
         fileListPanel.setOnFileSelected(this::onFileSelected);
+        fileListPanel.setOnBatchTranslate(this::startBatchTranslation);
 
         // 双击修正
         textPanel.setOnTranslationDoubleClick(this::showCorrectionDialog);
@@ -376,6 +383,75 @@ public class MainWindow extends BorderPane {
         navBar.setTranslating(false);
         bottomBar.setIdle();
         logPanel.warn("翻译已取消");
+    }
+
+    /**
+     * 批量翻译多个页面。
+     */
+    private void startBatchTranslation(List<MangaPage> pages) {
+        if (!config.isValid()) {
+            logPanel.error("API 未配置");
+            showAlert("配置未完成", "请先在设置中配置百度 API Key");
+            return;
+        }
+
+        navBar.setTranslating(true);
+        logPanel.info("开始批量翻译: " + pages.size() + " 张图片");
+
+        pipelineThread = new Thread(() -> {
+            int total = pages.size();
+            int[] completedRef = {0};
+
+            for (MangaPage page : pages) {
+                if (Thread.currentThread().isInterrupted()) break;
+
+                int currentIdx = completedRef[0];
+                Platform.runLater(() -> {
+                    bottomBar.updateProgress((double) currentIdx / total,
+                            "正在翻译第 " + (currentIdx + 1) + "/" + total + " 张…");
+                    logPanel.info("翻译中: " + page.getFileName() + " (" + (currentIdx + 1) + "/" + total + ")");
+                });
+
+                try {
+                    page.setStatus(PageStatus.TRANSLATING);
+                    var batchPipeline = new TranslationPipeline(new PipelineEventBus());
+                    batchPipeline.addStep(new OcrStep(new BaiduOcrServiceImpl(ocrClient, authManager, config)));
+                    batchPipeline.addStep(new CleanStep());
+                    batchPipeline.addStep(new TranslateStep(new BaiduTranslateServiceImpl(translateClient, config)));
+                    batchPipeline.addStep(new InpaintStep(new WhiteInpaintServiceImpl()));
+                    batchPipeline.addStep(new RenderStep(new Graphics2DRenderServiceImpl()));
+
+                    var context = batchPipeline.execute(page, config);
+                    if (context.getResultImage() != null) {
+                        page.setTranslatedImage(context.getResultImage());
+                        page.setTextRegions(context.getCleanedRegions());
+                        page.setStatus(PageStatus.COMPLETED);
+                    }
+                    completedRef[0]++;
+                } catch (Exception e) {
+                    log.error("批量翻译失败: {}", page.getFileName(), e);
+                    int failIdx = completedRef[0];
+                    Platform.runLater(() ->
+                            logPanel.error("翻译失败: " + page.getFileName() + " — " + e.getMessage()));
+                    completedRef[0]++;
+                }
+            }
+
+            int finalCompleted = completedRef[0];
+            Platform.runLater(() -> {
+                bottomBar.setIdle();
+                navBar.setTranslating(false);
+                fileListPanel.refreshList();
+                logPanel.success("批量翻译完成！成功 " + finalCompleted + "/" + total + " 张");
+
+                if (!pages.isEmpty()) {
+                    MangaPage last = pages.get(pages.size() - 1);
+                    onFileSelected(last);
+                }
+            });
+        }, "batch-pipeline");
+        pipelineThread.setDaemon(true);
+        pipelineThread.start();
     }
 
     /**

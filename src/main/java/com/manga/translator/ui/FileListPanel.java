@@ -2,7 +2,6 @@ package com.manga.translator.ui;
 
 import com.manga.translator.model.MangaPage;
 import com.manga.translator.model.PageStatus;
-import javafx.geometry.Insets;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -17,7 +16,7 @@ import java.util.function.Consumer;
  * 文件列表面板。
  * <p>
  * 显示已导入图片的文件名和状态列表。
- * Phase 1 MVP：简单列表，无缩略图。
+ * Phase 2：支持多选、右键菜单增强。
  */
 public class FileListPanel extends VBox {
 
@@ -26,6 +25,7 @@ public class FileListPanel extends VBox {
     private final List<MangaPage> pages;
 
     private Consumer<MangaPage> onFileSelected;
+    private Consumer<List<MangaPage>> onBatchTranslate;
     private Runnable onDeleteFile;
     private Runnable onRetranslate;
 
@@ -46,9 +46,10 @@ public class FileListPanel extends VBox {
         headerLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: 500; -fx-text-fill: " + HEADER_COLOR + ";"
                 + "-fx-padding: 8px 10px;");
 
-        // 文件列表
+        // 文件列表（支持多选）
         fileList = new ListView<>();
         fileList.setStyle("-fx-background-color: transparent; -fx-border: none;");
+        fileList.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
         fileList.setCellFactory(param -> new FileListCell());
 
         // 选择事件
@@ -60,15 +61,30 @@ public class FileListPanel extends VBox {
 
         // 右键菜单
         ContextMenu contextMenu = new ContextMenu();
+
+        MenuItem translateItem = new MenuItem("翻译选定文件");
+        translateItem.setOnAction(e -> {
+            var selected = fileList.getSelectionModel().getSelectedItems();
+            if (!selected.isEmpty() && onBatchTranslate != null) {
+                onBatchTranslate.accept(new ArrayList<>(selected));
+            }
+        });
+
         MenuItem deleteItem = new MenuItem("删除");
         deleteItem.setOnAction(e -> {
-            if (onDeleteFile != null) onDeleteFile.run();
+            MangaPage selected = fileList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                pages.remove(selected);
+                refreshList();
+            }
         });
+
         MenuItem retranslateItem = new MenuItem("重新翻译");
         retranslateItem.setOnAction(e -> {
             if (onRetranslate != null) onRetranslate.run();
         });
-        contextMenu.getItems().addAll(deleteItem, retranslateItem);
+
+        contextMenu.getItems().addAll(translateItem, deleteItem, retranslateItem);
         fileList.setContextMenu(contextMenu);
 
         getChildren().addAll(headerLabel, fileList);
@@ -76,8 +92,6 @@ public class FileListPanel extends VBox {
 
     /**
      * 添加一个漫画页面到列表。
-     *
-     * @param page 漫画页面
      */
     public void addPage(MangaPage page) {
         pages.add(page);
@@ -87,30 +101,23 @@ public class FileListPanel extends VBox {
 
     /**
      * 获取当前选中的页面。
-     *
-     * @return 选中的页面，无选中返回 null
      */
     public MangaPage getSelectedPage() {
         return fileList.getSelectionModel().getSelectedItem();
     }
 
     /**
-     * 获取所有页面。
-     *
-     * @return 页面列表
+     * 获取所有选中的页面（多选）。
      */
-    public List<MangaPage> getPages() {
-        return pages;
+    public List<MangaPage> getSelectedPages() {
+        return new ArrayList<>(fileList.getSelectionModel().getSelectedItems());
     }
 
     /**
-     * 移除指定页面。
-     *
-     * @param page 要移除的页面
+     * 获取所有页面。
      */
-    public void removePage(MangaPage page) {
-        pages.remove(page);
-        refreshList();
+    public List<MangaPage> getPages() {
+        return pages;
     }
 
     /**
@@ -122,16 +129,28 @@ public class FileListPanel extends VBox {
 
     /**
      * 获取文件数量。
-     *
-     * @return 文件数量
      */
     public int getPageCount() {
         return pages.size();
     }
 
+    /**
+     * 获取待翻译的文件列表（未完成的）。
+     */
+    public List<MangaPage> getPendingPages() {
+        List<MangaPage> pending = new ArrayList<>();
+        for (MangaPage page : pages) {
+            if (page.getStatus() != PageStatus.COMPLETED && page.getStatus() != PageStatus.TRANSLATING) {
+                pending.add(page);
+            }
+        }
+        return pending;
+    }
+
     // === 事件设置 ===
 
     public void setOnFileSelected(Consumer<MangaPage> callback) { this.onFileSelected = callback; }
+    public void setOnBatchTranslate(Consumer<List<MangaPage>> callback) { this.onBatchTranslate = callback; }
     public void setOnDeleteFile(Runnable callback) { this.onDeleteFile = callback; }
     public void setOnRetranslate(Runnable callback) { this.onRetranslate = callback; }
 }
