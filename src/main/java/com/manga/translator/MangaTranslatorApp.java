@@ -1,7 +1,13 @@
 package com.manga.translator;
 
+import com.manga.translator.client.BaiduAuthManager;
+import com.manga.translator.client.HttpUtil;
+import com.manga.translator.config.ConfigManager;
+import com.manga.translator.model.TranslationConfig;
 import com.manga.translator.ui.MainWindow;
+import com.manga.translator.ui.OnboardingDialog;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -25,14 +31,41 @@ public class MangaTranslatorApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        MainWindow mainWindow = new MainWindow();
+        ConfigManager configManager = new ConfigManager();
+        TranslationConfig config = configManager.loadConfig();
 
+        // 首次启动引导
+        if (!config.isValid()) {
+            HttpUtil httpUtil = new HttpUtil();
+            BaiduAuthManager authManager = new BaiduAuthManager(httpUtil);
+
+            OnboardingDialog onboarding = new OnboardingDialog(authManager);
+            onboarding.initOwner(primaryStage);
+            onboarding.showAndWait().ifPresent(savedConfig -> {
+                configManager.saveConfig(savedConfig);
+                // config saved by configManager.saveConfig(savedConfig);
+            });
+        }
+
+        MainWindow mainWindow = new MainWindow();
         Scene scene = new Scene(mainWindow, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // 加载 CSS 样式
+        var cssUrl = getClass().getResource("/styles/app.css");
+        if (cssUrl != null) {
+            scene.getStylesheets().add(cssUrl.toExternalForm());
+        }
 
         primaryStage.setTitle(APP_TITLE);
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(WINDOW_MIN_WIDTH);
         primaryStage.setMinHeight(WINDOW_MIN_HEIGHT);
         primaryStage.show();
+
+        // 确保窗口关闭时清理资源
+        primaryStage.setOnCloseRequest(e -> {
+            Platform.exit();
+            System.exit(0);
+        });
     }
 }
