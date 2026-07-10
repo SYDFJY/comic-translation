@@ -1,26 +1,33 @@
 package com.manga.translator.ui;
 
 import com.manga.translator.model.TextRegion;
-import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 文本对照面板。
  * <p>
  * 左右双栏显示原文和译文，支持逐条对照。
- * Phase 1 MVP：只读显示，无双击修正功能。
+ * Phase 2：双击译文行弹出修正对话框。
  */
 public class TextPanel extends VBox {
 
     private final GridPane grid;
     private final Label headerLabel;
     private final ScrollPane scrollPane;
+
+    /** 当前显示的文字区域列表 */
+    private List<TextRegion> currentRegions;
+
+    /** 双击译文行回调 */
+    private Consumer<TextRegion> onTranslationDoubleClick;
 
     private static final String HEADER_BG = "#2A2A4A";
     private static final String PANEL_BG = "#252540";
@@ -43,6 +50,10 @@ public class TextPanel extends VBox {
         headerLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: 500; -fx-text-fill: " + HEADER_COLOR + ";"
                 + "-fx-padding: 8px 12px;");
 
+        // 提示
+        Label hintLabel = new Label("双击译文可修正");
+        hintLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #606070;");
+
         // 双栏网格
         grid = new GridPane();
         grid.setStyle("-fx-padding: 2px;");
@@ -53,10 +64,10 @@ public class TextPanel extends VBox {
         grid.getColumnConstraints().addAll(col1, col2);
 
         // 列头部
-        Label originHeader = new Label("原文");
+        Label originHeader = new Label("原文（日语）");
         originHeader.setStyle("-fx-font-size: 11px; -fx-text-fill: #606070; -fx-font-weight: 500;"
                 + "-fx-padding: 4px 8px; -fx-background-color: " + HEADER_BG + ";");
-        Label transHeader = new Label("译文");
+        Label transHeader = new Label("译文（中文）");
         transHeader.setStyle("-fx-font-size: 11px; -fx-text-fill: #606070; -fx-font-weight: 500;"
                 + "-fx-padding: 4px 8px; -fx-background-color: " + HEADER_BG + ";");
         grid.add(originHeader, 0, 0);
@@ -72,7 +83,11 @@ public class TextPanel extends VBox {
         scrollPane.setStyle("-fx-background-color: transparent; -fx-border: none;");
         scrollPane.setFitToWidth(true);
 
-        getChildren().addAll(headerLabel, scrollPane);
+        // 顶部：头部 + 提示
+        VBox headerBox = new VBox(0);
+        headerBox.getChildren().addAll(headerLabel, hintLabel);
+
+        getChildren().addAll(headerBox, scrollPane);
     }
 
     /**
@@ -81,7 +96,8 @@ public class TextPanel extends VBox {
      * @param regions 文字区域列表
      */
     public void updateTextRegions(List<TextRegion> regions) {
-        // 清除旧行（保留头部）
+        this.currentRegions = regions;
+        // 清除旧行（保留头部行 0）
         grid.getChildren().removeIf(node -> {
             Integer row = GridPane.getRowIndex(node);
             return row != null && row > 0;
@@ -90,8 +106,7 @@ public class TextPanel extends VBox {
         if (regions == null || regions.isEmpty()) {
             Label emptyLabel = new Label("无文字区域 — 请先执行翻译");
             emptyLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #606070;"
-                    + "-fx-padding: 8px;"
-                    + "-fx-gridpane-column-span: 2;");
+                    + "-fx-padding: 8px;");
             GridPane.setColumnSpan(emptyLabel, 2);
             grid.add(emptyLabel, 0, 1);
             return;
@@ -110,7 +125,6 @@ public class TextPanel extends VBox {
                     + "-fx-border-width: 0 0 0.5 0;");
             originLabel.setWrapText(true);
             originLabel.setMaxWidth(200);
-            int finalI = i;
             originLabel.setOnMouseEntered(e ->
                     originLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: " + ORIGIN_COLOR + ";"
                             + "-fx-padding: 4px 8px;"
@@ -123,7 +137,7 @@ public class TextPanel extends VBox {
                             + "-fx-border-color: transparent transparent " + SEPARATOR_COLOR + " transparent;"
                             + "-fx-border-width: 0 0 0.5 0;"));
 
-            // 译文列
+            // 译文列（可双击修正）
             String displayText = region.getDisplayText() != null ? region.getDisplayText() : "";
             Label transLabel = new Label(displayText);
             transLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: " + TRANS_COLOR + ";"
@@ -133,6 +147,8 @@ public class TextPanel extends VBox {
                     + "-fx-cursor: hand;");
             transLabel.setWrapText(true);
             transLabel.setMaxWidth(200);
+
+            // 悬停效果
             transLabel.setOnMouseEntered(e ->
                     transLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: " + TRANS_COLOR + ";"
                             + "-fx-padding: 4px 8px;"
@@ -147,6 +163,16 @@ public class TextPanel extends VBox {
                             + "-fx-border-color: transparent transparent " + SEPARATOR_COLOR + " transparent;"
                             + "-fx-border-width: 0 0 0.5 0;"
                             + "-fx-cursor: hand;"));
+
+            // 双击修正
+            int finalI = i;
+            transLabel.setOnMouseClicked(e -> {
+                if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+                    if (onTranslationDoubleClick != null) {
+                        onTranslationDoubleClick.accept(region);
+                    }
+                }
+            });
 
             grid.add(originLabel, 0, row);
             grid.add(transLabel, 1, row);
@@ -163,9 +189,19 @@ public class TextPanel extends VBox {
      * 清空文本面板。
      */
     public void clearText() {
+        this.currentRegions = null;
         grid.getChildren().removeIf(node -> {
             Integer row = GridPane.getRowIndex(node);
             return row != null && row > 0;
         });
+    }
+
+    /**
+     * 设置双击译文回调。
+     *
+     * @param callback 接收被双击的 TextRegion
+     */
+    public void setOnTranslationDoubleClick(Consumer<TextRegion> callback) {
+        this.onTranslationDoubleClick = callback;
     }
 }

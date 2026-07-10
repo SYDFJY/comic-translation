@@ -1,0 +1,167 @@
+/* ========================================
+   漫画翻译器 — 深色主题样式表
+   版本: v1.0
+   配色方案: 项目计划书 UI 设计规格
+   ======================================== */
+
+/* === 全局 === */
+.root {
+    -fx-background-color: #1E1E2E;
+    -fx-font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: #E8E8E8;
+}
+
+/* === 滚动条 === */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 6px;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #404058;
+    -fx-background-radius: 3px;
+}
+
+.scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 6px;
+}
+
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #404058;
+    -fx-background-radius: 3px;
+}
+
+.scroll-bar:horizontal .track {
+    -fx-background-color: transparent;
+}
+
+/* === Tab 面板 === */
+.tab-pane {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab-header-area {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 8px 16px;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #A0A0B0;
+    -fx-font-size: 12px;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #60A5FA;
+    -fx-font-weight: 500;
+}
+
+.tab-pane .tab-close-button {
+    -fx-background-color: transparent;
+}
+
+/* 选中下划线 */
+.tab-pane .tab:selected .focus-indicator {
+    -fx-border-color: transparent transparent #60A5FA transparent;
+    -fx-border-width: 2px;
+}
+
+/* === 列表 === */
+.list-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4px;
+}
+
+.list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 2px;
+}
+
+.list-cell:selected {
+    -fx-background-color: transparent;
+}
+
+/* === 对话框 === */
+.dialog-pane {
+    -fx-background-color: #2A2A4A;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #2A2A4A;
+}
+
+.dialog-pane .button-bar {
+    -fx-background-color: #2A2A4A;
+}
+
+/* === 按钮通用 === */
+.button {
+    -fx-cursor: hand;
+}
+
+/* === ComboBox === */
+.combo-box {
+    -fx-background-color: #1E1E2E;
+    -fx-border-color: #404058;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #60A5FA;
+    -fx-font-size: 12px;
+}
+
+.combo-box .arrow {
+    -fx-background-color: #606070;
+}
+
+/* === TextField 通用 === */
+.text-field {
+    -fx-background-color: #1E1E2E;
+    -fx-text-fill: #E8E8E8;
+    -fx-border-color: #404058;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 6px 10px;
+    -fx-font-size: 12px;
+}
+
+.text-area {
+    -fx-background-color: #1E1E2E;
+    -fx-text-fill: #FBBF24;
+    -fx-border-color: #404058;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 10px 12px;
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
+}
+
+.text-area .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.text-area .content {
+    -fx-background-color: #1E1E2E;
+}

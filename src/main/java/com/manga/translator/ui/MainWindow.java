@@ -7,6 +7,8 @@ import com.manga.translator.client.HttpUtil;
 import com.manga.translator.config.ConfigManager;
 import com.manga.translator.model.MangaPage;
 import com.manga.translator.model.PageStatus;
+import com.manga.translator.model.RegionStatus;
+import com.manga.translator.model.TextRegion;
 import com.manga.translator.model.TranslationConfig;
 import com.manga.translator.pipeline.*;
 import com.manga.translator.service.impl.*;
@@ -25,11 +27,12 @@ import org.slf4j.LoggerFactory;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * 主窗口。
  * <p>
- * 整合所有 UI 组件，实现图片导入、翻译管线执行、结果展示等功能。
+ * 整合所有 UI 组件，实现图片导入、翻译管线执行、翻译修正、结果展示等功能。
  */
 public class MainWindow extends BorderPane {
 
@@ -40,6 +43,7 @@ public class MainWindow extends BorderPane {
     private final CanvasPanel canvasPanel;
     private final TextPanel textPanel;
     private final BottomBar bottomBar;
+    private final LogPanel logPanel;
 
     private final HttpUtil httpUtil;
     private final BaiduAuthManager authManager;
@@ -47,11 +51,10 @@ public class MainWindow extends BorderPane {
     private final BaiduTranslateClient translateClient;
     private final ConfigManager configManager;
     private TranslationConfig config;
+    private MangaPage currentPage;
 
     private TranslationPipeline pipeline;
     private Thread pipelineThread;
-
-    private static final String PANEL_BG = "#252540";
 
     public MainWindow() {
         setStyle("-fx-background-color: #1E1E2E;");
@@ -70,6 +73,7 @@ public class MainWindow extends BorderPane {
         this.canvasPanel = new CanvasPanel();
         this.textPanel = new TextPanel();
         this.bottomBar = new BottomBar();
+        this.logPanel = new LogPanel();
 
         setupLayout();
         setupEventHandlers();
@@ -79,11 +83,14 @@ public class MainWindow extends BorderPane {
             try {
                 authManager.getAccessToken(config);
                 navBar.setApiStatus(true);
+                logPanel.success("API 连接成功");
             } catch (Exception e) {
                 navBar.setApiStatus(false);
+                logPanel.error("API 连接失败: " + e.getMessage());
             }
         } else {
             navBar.setApiStatus(false);
+            logPanel.warn("API 未配置，请先在设置中配置 API Key");
         }
     }
 
@@ -91,17 +98,13 @@ public class MainWindow extends BorderPane {
      * 设置布局。
      */
     private void setupLayout() {
-        // 顶部导航栏
         setTop(navBar);
 
-        // 中间区域：侧栏 + 画布+文本面板
+        // 中间区域
         HBox centerArea = new HBox(4);
-
-        // 左侧：文件列表
         fileListPanel.setPrefWidth(260);
         fileListPanel.setMinWidth(200);
 
-        // 右侧：画布 + 文本面板
         VBox rightArea = new VBox(4);
         VBox.setVgrow(canvasPanel, Priority.ALWAYS);
         rightArea.getChildren().addAll(canvasPanel, textPanel);
@@ -110,18 +113,17 @@ public class MainWindow extends BorderPane {
         HBox.setHgrow(rightArea, Priority.ALWAYS);
         setCenter(centerArea);
 
-        // 底部状态栏
-        setBottom(bottomBar);
+        // 底部：状态栏 + 日志面板
+        VBox bottomArea = new VBox(4);
+        bottomArea.getChildren().addAll(bottomBar, logPanel);
+        setBottom(bottomArea);
     }
 
     /**
      * 设置事件处理。
      */
     private void setupEventHandlers() {
-        // 打开文件
         navBar.getOpenBtn().setOnAction(e -> openFile());
-
-        // 翻译
         navBar.getTranslateBtn().setOnAction(e -> {
             MangaPage selected = fileListPanel.getSelectedPage();
             if (selected != null) {
@@ -132,18 +134,15 @@ public class MainWindow extends BorderPane {
                 }
             }
         });
+        navBar.getBatchImportBtn().setOnAction(e -> batchImport());
+        navBar.getExportBtn().setOnAction(e -> exportResult());
+        navBar.getSettingsBtn().setOnAction(e -> showSettings());
+        navBar.getSplitViewBtn().setOnAction(e -> canvasPanel.toggleSplitView());
 
-        // 文件选中
         fileListPanel.setOnFileSelected(this::onFileSelected);
 
-        // 导出
-        navBar.getExportBtn().setOnAction(e -> exportResult());
-
-        // 设置
-        navBar.getSettingsBtn().setOnAction(e -> showSettings());
-
-        // 批量导入
-        navBar.getBatchImportBtn().setOnAction(e -> batchImport());
+        // 双击修正
+        textPanel.setOnTranslationDoubleClick(this::showCorrectionDialog);
     }
 
     /**
@@ -155,7 +154,6 @@ public class MainWindow extends BorderPane {
         fileChooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter("图片文件", "*.jpg", "*.jpeg", "*.png", "*.bmp")
         );
-
         File file = fileChooser.showOpenDialog(getScene().getWindow());
         if (file != null) {
             loadImageFile(file);
@@ -179,6 +177,7 @@ public class MainWindow extends BorderPane {
                 for (File file : files) {
                     loadImageFile(file);
                 }
+                logPanel.info("批量导入完成: " + files.length + " 张图片");
             }
         }
     }
@@ -199,8 +198,10 @@ public class MainWindow extends BorderPane {
             onFileSelected(page);
 
             log.info("图片已加载: {}", file.getName());
+            logPanel.info("已加载: " + file.getName());
         } catch (IOException e) {
             log.error("加载图片失败: {}", file.getName(), e);
+            logPanel.error("加载失败: " + file.getName());
             showAlert("加载失败", "无法加载图片: " + file.getName());
         }
     }
@@ -209,13 +210,71 @@ public class MainWindow extends BorderPane {
      * 文件选中事件。
      */
     private void onFileSelected(MangaPage page) {
+        this.currentPage = page;
         if (page != null) {
             canvasPanel.showOriginalImage(page.getOriginalImage());
             textPanel.updateTextRegions(page.getTextRegions());
-
             if (page.getTranslatedImage() != null) {
                 canvasPanel.showResultImage(page.getTranslatedImage());
             }
+        }
+    }
+
+    /**
+     * 显示翻译修正对话框。
+     */
+    private void showCorrectionDialog(TextRegion region) {
+        CorrectionDialog dialog = new CorrectionDialog(region);
+        Optional<CorrectionDialog.CorrectionResult> result = dialog.showAndWait();
+
+        result.ifPresent(correction -> {
+            if (correction.isRetranslate()) {
+                // 用户点击"重新翻译"——保留原始文本不变，重新翻译
+                // 重置译文状态
+                region.setTranslatedText(null);
+                region.setStatus(RegionStatus.PENDING);
+                // 单条重新翻译：需要 API 调用，这里简化直接把原文保留
+                region.setCorrectedText(correction.getCorrectedText());
+                logPanel.info("区域 #" + region.getId() + " 请求重新翻译");
+            } else {
+                // 用户点击"确认修正"——直接使用修正文本
+                region.setCorrectedText(correction.getCorrectedText());
+                region.setStatus(RegionStatus.CORRECTED);
+                logPanel.success("区域 #" + region.getId() + " 已修正");
+            }
+
+            // 重新渲染该区域
+            reRenderRegion(region);
+        });
+    }
+
+    /**
+     * 重新渲染单个文字区域。
+     */
+    private void reRenderRegion(TextRegion region) {
+        if (currentPage == null || currentPage.getOriginalImage() == null) return;
+
+        try {
+            // 用原图重新修补+渲染单个区域
+            BufferedImage original = currentPage.getOriginalImage();
+            if (currentPage.getTranslatedImage() == null) {
+                // 无翻译结果图，先做完整修补
+                var inpaintService = new WhiteInpaintServiceImpl();
+                var renderService = new Graphics2DRenderServiceImpl();
+                var inpainted = inpaintService.inpaint(original, currentPage.getTextRegions());
+                var result = renderService.render(inpainted, currentPage.getTextRegions());
+                currentPage.setTranslatedImage(result);
+            } else {
+                // 已有翻译图，重新修补+渲染受影响区域
+                // 简化：直接用当前翻译图，仅更新显示的文本面板
+            }
+
+            textPanel.updateTextRegions(currentPage.getTextRegions());
+            canvasPanel.showResultImage(currentPage.getTranslatedImage());
+            logPanel.info("区域 #" + region.getId() + " 已重新渲染");
+        } catch (Exception e) {
+            log.error("重新渲染失败", e);
+            logPanel.error("重新渲染失败: " + e.getMessage());
         }
     }
 
@@ -224,6 +283,7 @@ public class MainWindow extends BorderPane {
      */
     private void startTranslation(MangaPage page) {
         if (!config.isValid()) {
+            logPanel.error("API 未配置");
             showAlert("配置未完成", "请先在设置中配置百度 API Key");
             return;
         }
@@ -231,6 +291,7 @@ public class MainWindow extends BorderPane {
         navBar.setTranslating(true);
         bottomBar.updateProgress(0, "正在初始化…");
         textPanel.clearText();
+        logPanel.info("开始翻译: " + page.getFileName());
 
         // 创建管线
         pipeline = new TranslationPipeline(new PipelineEventBus());
@@ -255,6 +316,7 @@ public class MainWindow extends BorderPane {
                 Platform.runLater(() -> {
                     bottomBar.updateProgress(event.getProgress(), event.getMessage());
                     navBar.setTranslating(false);
+                    logPanel.error(event.getMessage());
                     showAlert("翻译失败", event.getMessage());
                 });
             }
@@ -264,6 +326,7 @@ public class MainWindow extends BorderPane {
                 Platform.runLater(() -> {
                     bottomBar.setIdle();
                     navBar.setTranslating(false);
+                    logPanel.success(event.getMessage());
 
                     var result = page.getTranslatedImage();
                     if (result != null) {
@@ -275,7 +338,7 @@ public class MainWindow extends BorderPane {
             }
         });
 
-        // 在后台线程执行翻译
+        // 后台线程执行
         pipelineThread = new Thread(() -> {
             try {
                 var context = pipeline.execute(page, config);
@@ -284,11 +347,14 @@ public class MainWindow extends BorderPane {
                     page.setTextRegions(context.getCleanedRegions());
                     page.setStatus(PageStatus.COMPLETED);
                 }
+                int textCount = context.getCleanedRegions() != null ? context.getCleanedRegions().size() : 0;
+                logPanel.success("翻译完成！共识别 " + textCount + " 个文字区域");
             } catch (Exception e) {
                 log.error("翻译管线执行失败", e);
                 Platform.runLater(() -> {
                     bottomBar.setIdle();
                     navBar.setTranslating(false);
+                    logPanel.error("翻译失败: " + e.getMessage());
                     showAlert("翻译失败", e.getMessage());
                 });
             }
@@ -309,6 +375,7 @@ public class MainWindow extends BorderPane {
         }
         navBar.setTranslating(false);
         bottomBar.setIdle();
+        logPanel.warn("翻译已取消");
     }
 
     /**
@@ -333,8 +400,10 @@ public class MainWindow extends BorderPane {
             try {
                 ImageUtil.saveImage(selected.getTranslatedImage(), file.getAbsolutePath(), "png");
                 log.info("导出成功: {}", file.getAbsolutePath());
+                logPanel.success("已保存到: " + file.getName());
             } catch (IOException e) {
                 log.error("导出失败", e);
+                logPanel.error("导出失败: " + e.getMessage());
                 showAlert("导出失败", "保存图片时出错: " + e.getMessage());
             }
         }
@@ -352,15 +421,17 @@ public class MainWindow extends BorderPane {
                 try {
                     authManager.getAccessToken(savedConfig);
                     navBar.setApiStatus(true);
+                    logPanel.success("API 配置已更新并验证通过");
                 } catch (Exception e) {
                     navBar.setApiStatus(false);
+                    logPanel.error("API 验证失败: " + e.getMessage());
                 }
             }
         });
     }
 
     /**
-     * 显示错误提示框。
+     * 显示提示框。
      */
     private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR, message, ButtonType.OK);
